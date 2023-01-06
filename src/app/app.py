@@ -1,10 +1,20 @@
+# import sys
+# sys.path.append("..")
+
 from fastapi import Depends, FastAPI
 
 from app.db import User, create_db_and_tables
 from app.schemas import UserCreate, UserRead, UserUpdate
 from app.users import auth_backend, current_active_user, fastapi_users, auth_frontend
 
+from starlette.staticfiles import StaticFiles
+
+from app.frontend import router as front_router
+
 app = FastAPI()
+
+# Static Files
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Backend login
 app.include_router(
@@ -14,7 +24,7 @@ app.include_router(
 # Frontend Login
 app.include_router(
     fastapi_users.get_auth_router(auth_frontend), 
-    prefix="/auth/cookie", 
+    prefix="/auth/cookie",
     tags=["auth"]
 )
 
@@ -39,9 +49,13 @@ app.include_router(
     tags=["users"],
 )
 
+app.include_router(front_router)
+
 @app.get("/authenticated-route")
 async def authenticated_route(user: User = Depends(current_active_user)):
     return {"message": f"Hello {user.email}!"}
+
+
 
 @app.on_event("startup")
 async def on_startup():

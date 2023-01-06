@@ -1,13 +1,13 @@
 import uuid
 from typing import Optional
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, status
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     JWTStrategy,
-    CookieTransport,
+    CookieTransport
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
 
@@ -51,7 +51,18 @@ auth_backend = AuthenticationBackend(
     get_strategy=get_jwt_strategy,
 )
 
-cookie_transport = CookieTransport(
+fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
+current_active_user = fastapi_users.current_user(active=True)
+
+# Overload del método get_login_response para hacer un redirect
+class AutoRedirectCookieTransport(CookieTransport):
+    async def get_login_response(self, token, response):
+        await super().get_login_response(token, response)
+        response.status_code = status.HTTP_302_FOUND
+        response.headers["Location"] = "http://127.0.0.1:8000/info/"
+
+# cookie_transport = CookieTransport(
+cookie_transport = AutoRedirectCookieTransport(    
     cookie_max_age=3600, 
     cookie_path="auth/cookie/login", 
     cookie_secure=False                 # Accept HTTP connections too
@@ -63,6 +74,5 @@ auth_frontend = AuthenticationBackend(
     get_strategy=get_jwt_strategy
 )
 
-fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
-
-current_active_user = fastapi_users.current_user(active=True)
+fastapi_front_user = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_frontend])
+current_active_user_frontend = fastapi_front_user.current_user(active=True)

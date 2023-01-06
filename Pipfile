@@ -4,10 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-fastapi = "*"
+fastapi = {extras = ["all"], version = "*"}
 fastapi-users = {extras = ["sqlalchemy"], version = "*"}
 uvicorn = {extras = ["standard"], version = "*"}
 aiosqlite = "*"
+requests = "*"
 
 [dev-packages]
 
